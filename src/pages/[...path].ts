@@ -1,14 +1,7 @@
-import { getCollection, type CollectionEntry } from 'astro:content';
-import type { APIRoute } from 'astro';
+import { getCollection } from 'astro:content';
+import type { APIRoute, InferGetStaticPropsType } from 'astro';
 
-type RegistryEntry = CollectionEntry<'index'>;
-
-type EndpointPath = {
-  params: { path: string };
-  props: { entry: RegistryEntry };
-};
-
-export async function getStaticPaths(): Promise<EndpointPath[]> {
+export async function getStaticPaths() {
   const entries = await getCollection('index');
 
   return entries.map((entry) => ({
@@ -18,7 +11,7 @@ export async function getStaticPaths(): Promise<EndpointPath[]> {
 }
 
 export const GET: APIRoute = ({ props }) => {
-  const entry = props.entry as RegistryEntry;
+   const { entry } = props as InferGetStaticPropsType<typeof getStaticPaths>;
 
   return new Response(entry.body, {
     headers: {

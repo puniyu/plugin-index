@@ -47,9 +47,6 @@ const indexLoader: Loader = {
         }
 
         const id = relativePath.split(path.sep).join("/");
-        const siteRelativePath = path.relative(rootPath, resolvedPath).split(
-          path.sep,
-        ).join("/");
         const content = await readFile(resolvedPath, "utf8");
         const packages = JSON.parse(content) as PackageInfo[];
         const latest = packages.reduce((a, b) =>
@@ -67,7 +64,6 @@ const indexLoader: Loader = {
         store.set({
           id,
           data,
-          filePath: siteRelativePath,
           body: content,
         });
       }
