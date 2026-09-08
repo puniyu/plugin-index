@@ -18,28 +18,28 @@ app.get("/", async (ctx) => {
   return ctx.json({ last_package: lastPackage, count });
 });
 
-app.get("/:path{[^/]+/.+}", async (ctx) => {
-  const rawPath = ctx.req.param("path");
+app.get("/:path/:name/:version?", async (ctx) => {
+  const path = ctx.req.param("path");
+  const name = ctx.req.param("name");
+  const version = ctx.req.param("version");
+  const id = `${path}/${name}`;
   const entries = await getCollection("index");
+  const entryMap = new Map(entries.map((e) => [e.id, e]));
 
-  const versionIdx = rawPath.lastIndexOf("/");
-  const maybeVersion = rawPath.slice(versionIdx + 1);
-  const parentPath = rawPath.slice(0, versionIdx);
+  const entry = entryMap.get(id);
+  if (!entry) {
+    return ctx.json({ error: "not found", path: id }, 404);
+  }
 
-  const entry = entries.find((e) => e.id === parentPath);
-  if (entry) {
-    const pkg = entry.data.packages.find((p) => p.version === maybeVersion);
+  if (version) {
+    const pkg = entry.data.packages.find((p) => p.version === version);
     if (pkg) {
       return ctx.json(pkg);
     }
+    return ctx.json({ error: "not found", path: `${id}/${version}` }, 404);
   }
 
-  const exactEntry = entries.find((e) => e.id === rawPath);
-  if (exactEntry) {
-    return ctx.json(exactEntry.data.packages);
-  }
-
-  return ctx.json({ error: "not found", path: rawPath }, 404);
+  return ctx.json(entry.data.packages);
 });
 
 export default app;
