@@ -8,6 +8,7 @@ export default defineConfig({
   server: {
       port: 10721
   },
+  fetchFile: "index",
   integrations: [],
   adapter: netlify()
 });

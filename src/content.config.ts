@@ -4,13 +4,18 @@ import { readdir, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import type { Loader } from "astro/loaders";
 import { fileURLToPath } from "node:url";
-import type { PackageInfo } from "./types";
 
 const rootPath = fileURLToPath(new URL("../", import.meta.url));
 
+const packageSchema = z.object({
+  name: z.string(),
+  version: z.string(),
+  published_at: z.coerce.date(),
+});
+
 const indexLoader: Loader = {
   name: "index-files",
-  async load({ store, parseData, logger }) {
+  async load({ store, logger }) {
     store.clear();
 
     const indexDir = path.join(rootPath, "index");
@@ -46,26 +51,15 @@ const indexLoader: Loader = {
           continue;
         }
 
-        const id = relativePath.split(path.sep).join("/");
-        const content = await readFile(resolvedPath, "utf8");
-        const packages = JSON.parse(content) as PackageInfo[];
-        const latest = packages.reduce((a, b) =>
-          a.publish_time > b.publish_time ? a : b,
-        );
-        const data = await parseData({
-          id,
-          data: {
-            name: latest.name,
-            version: latest.version,
-            publish_time: latest.publish_time,
-          },
-        });
+        const id = relativePath
+          .split(path.sep)
+          .join("/")
+          .replace(/\.json$/, "");
 
-        store.set({
-          id,
-          data,
-          body: content,
-        });
+        const content = await readFile(resolvedPath, "utf8");
+        const packages = packageSchema.array().parse(JSON.parse(content));
+
+        store.set({ id, data: { packages } });
       }
     }
 
@@ -75,11 +69,7 @@ const indexLoader: Loader = {
 
 const index = defineCollection({
   loader: indexLoader,
-  schema: z.object({
-    name: z.string(),
-    version: z.string(),
-    publish_time: z.string(),
-  }),
+  schema: z.object({ packages: packageSchema.array() }),
 });
 
 export const collections = { index };
